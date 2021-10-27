@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "importHelpers": false, // 通过tslib引入helper函数，文件必须是模块
     "jsx": "react",
-    "lib": ["es2015", "dom"],
+    "lib": ["esnext", "dom"],
     "module": "esnext",
     "target": "ES5",
     "outDir": "esm",
@@ -21,6 +21,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*", "stories/**/*", "**/*.config.js"],
+  "include": ["src", "stories"],
   "exclude": ["node_modules", "**/*.spec.ts", "esm"]
 }

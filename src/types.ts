@@ -1,26 +1,45 @@
-export interface GridSettings {
-  boxesPerRow: number;
-  rowHeight: number;
-  columnWidth: number;
+import type * as React from 'react';
+
+export type UniqueId = string;
+
+export type DragEvent = React.TouchEvent | React.MouseEvent;
+
+export interface LayoutRect {
+  width: number;
+  height: number;
+  offsetLeft: number;
+  offsetTop: number;
 }
 
-export interface Bounds {
-  left: number;
-  height: number;
+export interface ViewRect extends LayoutRect {
   top: number;
+  left: number;
   right: number;
   bottom: number;
-  width: number;
 }
 
-export interface TraverseType {
-  sourceId: string;
-  targetId: string;
-  rx: number;
-  ry: number;
-  tx: number;
-  ty: number;
-  sourceIndex: number;
-  targetIndex: number;
-  execute?: boolean;
-}
+export type DroppableContainer = {
+  id: string;
+  key: string;
+  disabled: boolean;
+  node: React.MutableRefObject<HTMLElement | null>;
+  rect?: React.MutableRefObject<ViewRect | null>;
+};
+
+export type DraggableNode = {
+  id: UniqueId;
+  key: UniqueId;
+  node: React.MutableRefObject<HTMLElement | null>;
+};
+
+export type Announcements = {
+  onDragStart: (id: UniqueId) => string | undefined;
+  onDragMove: (id: UniqueId, overId?: UniqueId) => string | undefined;
+  onDragEnd: (id: UniqueId, overId?: UniqueId) => string | undefined;
+  onDragCancel: (id: UniqueId) => string | undefined;
+};
+
+export type Coordinates = {
+  x: number;
+  y: number;
+};

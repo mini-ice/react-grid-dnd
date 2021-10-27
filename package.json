@@ -2,21 +2,26 @@
   "name": "react-grid-dnd",
   "version": "1.0.0",
   "description": "react grid dnd",
-  "main": "src/index.js",
   "author": "wbyang",
   "license": "MIT",
   "private": false,
+  "main": "cjs/index.js",
+  "module": "esm/index.js",
+  "keywords": [
+    "react",
+    "drag and drop",
+    "dnd",
+    "grid"
+  ],
   "scripts": {
-    "build": "rollup -c",
+    "build": "npm run build:umd && npm run build:esm",
+    "build:umd": "rimraf umd && rimraf cjs && rollup -c",
+    "build:esm": "rimraf esm && tsc -p tsconfig.build.json",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook",
     "lint": "eslint --ext .tsx --ignore-path .gitignore ."
   },
   "dependencies": {
-    "classnames": "^2.3.1",
-    "react-gesture-responder": "^2.1.0",
-    "react-spring": "^9.3.0",
-    "resize-observer-polyfill": "^1.5.1",
     "tslib": "^2.3.1"
   },
   "peerDependencies": {
@@ -26,6 +31,7 @@
   "devDependencies": {
     "@babel/core": "^7.15.8",
     "@rollup/plugin-alias": "^3.1.5",
+    "@rollup/plugin-commonjs": "^21.0.1",
     "@rollup/plugin-eslint": "^8.0.1",
     "@rollup/plugin-json": "^4.1.0",
     "@storybook/addon-actions": "^6.3.12",
@@ -45,7 +51,9 @@
     "prettier": "^2.4.1",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
+    "rimraf": "^3.0.2",
     "rollup": "^2.58.0",
+    "rollup-plugin-filesize": "^9.1.1",
     "rollup-plugin-typescript2": "^0.30.0",
     "typescript": "^4.4.4"
   },
