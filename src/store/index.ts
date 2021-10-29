@@ -1,2 +1,3 @@
 export { reducer, getInitialState } from './reducer';
-export { Action, Actions } from './actions';
+export { Action } from './actions';
+export type { Actions } from './actions';

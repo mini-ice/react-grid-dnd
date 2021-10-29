@@ -2,6 +2,7 @@ import * as React from 'react';
 import { createNamedContext } from './utils';
 import { reducer, getInitialState, Actions, Action } from './store';
 import { useGestureResponser } from './hooks';
+import type { State, Config as SensorConfig } from './hooks';
 import {
   UniqueId,
   DraggableNode,
@@ -84,21 +85,28 @@ export const useDndContext = () => {
 interface Props {
   id?: string;
   autoScroll?: boolean;
-  onDragStart?: () => void;
-  onDragUpdate?: () => void;
-  onDragEnd?: () => void;
+  sensorConfig?: SensorConfig;
+  onDragStart?: (state: State, event: Event) => void;
+  onDragUpdate?: (state: State, event: Event) => void;
+  onDragOver?: () => void;
+  onDragEnd?: (state: State, event: Event) => void;
+  onDragCancel?: (state: State) => void;
 }
 
 export const DndContext: React.FC<Props> = React.memo(function DndContext({
   onDragStart = noop,
   onDragUpdate = noop,
+  onDragOver = noop,
   onDragEnd = noop,
+  onDragCancel = noop,
+  sensorConfig,
   children,
 }) {
   const [store, dispatch] = React.useReducer(reducer, undefined, getInitialState);
   const { draggable, droppable } = store;
   const { id: draggableId, nodes: draggableNodes } = draggable;
   const draggableNode = draggableId ? draggableNodes[draggableId] : null;
+  const draggableElement = draggableNode ? draggableNode?.node?.current : null;
   const draggableNodeRect = null;
 
   const { containers: droppableContainers } = droppable;
@@ -108,40 +116,50 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
   const overId = draggableId && collisionRect.current ? '10' : null;
   const over = overId ? droppableContainers.get(overId) ?? null : null;
 
-  const listeners = useGestureResponser({
-    onStart: (state, event) => {
-      const { draggableId, droppableId } = (event?.currentTarget as HTMLElement)?.dataset;
+  const listeners = useGestureResponser(
+    {
+      onStart: (state, event) => {
+        const { draggableId, droppableId } = (event?.target as HTMLElement)?.dataset;
 
-      if (draggableId) {
+        if (draggableId) {
+          dispatch({
+            type: Action.DragStart,
+            id: draggableId,
+            droppableId,
+            initialCoordinates: state.initialCoordinates,
+          });
+
+          onDragStart(state, event);
+        }
+      },
+      onMove: (state, event) => {
+        if (draggableId) {
+          dispatch({
+            type: Action.DragMove,
+            coordinates: state.coordinates,
+          });
+
+          onDragUpdate(state, event);
+          // onDragUpdate({ id: draggableId }, event);
+        }
+      },
+      onEnd: (state, event) => {
         dispatch({
-          type: Action.DragStart,
-          id: draggableId,
-          droppableId,
-          initialCoordinates: state.initialCoordinates,
+          type: Action.DragEnd,
         });
 
-        onDragStart();
-      }
-    },
-    onMove: (state) => {
-      if (draggableId) {
+        onDragEnd(state, event);
+      },
+      onCancel: (state) => {
         dispatch({
-          type: Action.DragMove,
-          coordinates: state.coordinates,
+          type: Action.DragEnd,
         });
 
-        onDragUpdate();
-        // onDragUpdate({ id: draggableId }, event);
-      }
+        onDragCancel(state);
+      },
     },
-    onEnd: () => {
-      dispatch({
-        type: Action.DragEnd,
-      });
-
-      onDragEnd();
-    },
-  });
+    sensorConfig,
+  );
 
   const memoContext = React.useMemo(
     () => ({

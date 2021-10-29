@@ -20,18 +20,22 @@ export function closest<T extends HTMLElement>(el: T, fn: (el: T) => boolean) {
   return null;
 }
 
-export function getPosition(event: MouseEvent | TouchEvent): Coordinates {
+export function getOwnerDocument(target: Event['target']) {
+  return target instanceof HTMLElement ? target.ownerDocument : document;
+}
+
+export function getPosition(event: Event): Coordinates {
   if (TouchEvent && event instanceof TouchEvent) {
     const { changedTouches, touches } = event;
     return {
-      x: changedTouches?.[0]?.pageX || touches?.[0]?.pageX || 0,
-      y: changedTouches?.[0]?.pageY || touches?.[0]?.pageY || 0,
+      x: changedTouches?.[0]?.clientX || touches?.[0]?.clientX || 0,
+      y: changedTouches?.[0]?.clientY || touches?.[0]?.clientY || 0,
     };
   }
 
   return {
-    x: (event as MouseEvent).pageX,
-    y: (event as MouseEvent).pageY,
+    x: (event as MouseEvent).clientX,
+    y: (event as MouseEvent).clientY,
   };
 }
 
