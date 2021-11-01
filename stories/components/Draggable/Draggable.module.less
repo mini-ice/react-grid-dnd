@@ -1,0 +1,63 @@
+.Draggable {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.25s ease;
+  button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    min-height: 54px;
+    flex-shrink: 1;
+    appearance: none;
+    outline: none;
+    border: 0;
+    padding: 8px 18px;
+    background-color: #181a22;
+    border-radius: 5px;
+    transition: transform 250ms cubic-bezier(0.18, 0.67, 0.6, 1.22), box-shadow 300ms ease;
+  }
+
+  &:not(.handle) {
+    button {
+      touch-action: none;
+      cursor: grab;
+
+      &:focus-visible:not(.active &) {
+        box-shadow: 0 0 0 3px #4c9ffe;
+      }
+    }
+  }
+
+  &.handle {
+    button {
+      > svg {
+        margin-right: 5px;
+      }
+
+      > button {
+        margin-right: -10px;
+      }
+    }
+  }
+
+  &.dragging {
+    z-index: 1;
+    transition: none;
+
+    * {
+      cursor: grabbing;
+    }
+
+    button {
+      box-shadow: -1px 0 15px 0 rgba(34, 33, 81, 0.01), 0px 15px 15px 0 rgba(34, 33, 81, 0.25);
+      transform: scale(1.06);
+
+      &:focus-visible {
+        box-shadow: 0 0px 10px 2px #4c9ffe;
+      }
+    }
+  }
+}

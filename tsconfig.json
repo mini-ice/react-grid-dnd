@@ -21,6 +21,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "stories"],
+  "include": ["src", "stories", "types"],
   "exclude": ["node_modules", "**/*.spec.ts", "esm"]
 }
