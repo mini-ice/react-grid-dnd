@@ -1,2 +1,9 @@
 export { useGestureResponser } from './useGestureResponser';
-export type { DragTypes, State, DistanceMeasurement, Axis, Config, Coordinates } from './types';
+export type {
+  DragTypes,
+  State,
+  DistanceMeasurement,
+  Config as SensorConfig,
+  SensorEvent,
+  Coordinates,
+} from './types';

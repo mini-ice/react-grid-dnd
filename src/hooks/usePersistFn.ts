@@ -3,18 +3,15 @@ import * as React from 'react';
 export type noop = (...args: any[]) => any;
 
 export function usePersistFn<T extends noop>(fn: T) {
-  const fnRef = React.useRef<T | null>(null);
+  const fnRef = React.useRef<T>(fn);
   fnRef.current = fn;
 
-  const presistFn = React.useRef<T>();
-
-  if (typeof fnRef.current !== 'function') return undefined;
-
-  if (!presistFn.current) {
-    presistFn.current = function (...args: any[]) {
+  const persistFn = React.useRef<T>();
+  if (!persistFn.current) {
+    persistFn.current = function (...args) {
       return fnRef.current!(...args);
     } as T;
   }
 
-  return presistFn.current;
+  return persistFn.current!;
 }

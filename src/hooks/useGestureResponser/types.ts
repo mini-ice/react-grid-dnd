@@ -1,5 +1,5 @@
 export enum DragTypes {
-  BeforeDragStart = 'beforeDragStart',
+  DragPress = 'dragPress',
   DragStart = 'dragStart',
   DragUpdate = 'dragUpdate',
   DragEnd = 'dragEnd',
@@ -14,9 +14,11 @@ export type Coordinates = {
 export type State = {
   type: DragTypes | null;
   coordinates: Coordinates;
-  initialCoordinates: Coordinates;
-  prevCoordinates: Coordinates;
+  initial: Coordinates;
+  previous: Coordinates;
   offset: Coordinates;
+  local: Coordinates;
+  lastLocal: Coordinates;
   velocity: number;
   distance: number;
   time: number;
@@ -26,11 +28,12 @@ export enum MouseButton {
   RightClick = 2,
 }
 
-export type DragEvent = React.TouchEvent | React.MouseEvent | Event;
+export type SensorEvent = React.TouchEvent | React.MouseEvent | Event;
 
 export type Options = {
-  onBeforeStart?: (state?: State, event?: DragEvent) => boolean;
-  onStart?: (state: State, event: Event) => void;
+  onStartShouldSet?: (state: State, event: SensorEvent) => boolean;
+  onStart?: (state: State, event: SensorEvent) => void;
+  onMoveShouldSet?: (state: State, event: SensorEvent) => boolean;
   onMove?: (state: State, event: Event) => void;
   onEnd?: (state: State, event: Event) => void;
   onCancel?: (state: State) => void;
@@ -49,7 +52,7 @@ export enum EventTypes {
 
 export type AttachEvent = {
   type: EventTypes;
-  listener?: <T extends Event>(event: T) => void;
+  listener?: (event: Event) => void;
   options?: boolean | AddEventListenerOptions;
 };
 
@@ -59,16 +62,10 @@ export type DistanceMeasurement =
   | Pick<Coordinates, 'x'>
   | Pick<Coordinates, 'y'>;
 
-export enum Axis {
-  All = 'xy',
-  Vertical = 'y',
-  Horizontal = 'x',
-}
-
 export type Config = {
-  enableMouse: boolean;
+  enableMouse?: boolean;
   delay?: number;
   tolerance?: DistanceMeasurement;
   distance?: DistanceMeasurement;
-  axis?: Axis;
+  axis?: 'xy' | 'x' | 'y';
 };

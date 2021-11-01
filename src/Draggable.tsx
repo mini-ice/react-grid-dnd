@@ -1,32 +1,38 @@
 import * as React from 'react';
 import { useDndContext } from './DndContext';
+import { useGestureResponser } from './hooks';
+import type { SensorConfig } from './hooks';
 
 type UseDraggable = {
   id: string;
-  disabled: boolean;
+  disabled?: boolean;
+  sensorConfig?: SensorConfig;
 };
 
-export function useDraggable({ id, disabled }: UseDraggable) {
-  const { draggableId, draggableNodes, listeners } = useDndContext();
+export function useDraggable({ id, disabled = false, sensorConfig }: UseDraggable) {
+  const {
+    draggableId,
+    draggableNodes,
+    sensorConfig: defaultSensorConfig,
+    handleDragStart,
+    handleDragUpdate,
+    handleDragEnd,
+    handleDragCancel,
+  } = useDndContext();
   const ref = React.useRef(null);
   const key = `draggable-${id}`;
 
   const isDragging = draggableId === id;
 
-  const style = React.useMemo<React.CSSProperties | null>(() => {
-    const basicStyles: React.CSSProperties = {
-      userSelect: 'none',
-      pointerEvents: 'none',
-    };
-    if (!draggableId) return null;
-
-    if (isDragging) return basicStyles;
-
-    return {
-      ...basicStyles,
-      transition: 'transform 0.2s ease 0s',
-    };
-  }, [draggableId, isDragging]);
+  const listeners = useGestureResponser(
+    {
+      onStart: (state, event) => handleDragStart(id, state, event),
+      onMove: handleDragUpdate,
+      onEnd: handleDragEnd,
+      onCancel: handleDragCancel,
+    },
+    { ...defaultSensorConfig, ...sensorConfig },
+  );
 
   React.useEffect(() => {
     draggableNodes[id] = {
@@ -47,7 +53,6 @@ export function useDraggable({ id, disabled }: UseDraggable) {
     isDragging,
     draggableId,
     dragProps: {
-      style,
       'data-draggable-id': id,
       'data-draggable-key': key,
     },

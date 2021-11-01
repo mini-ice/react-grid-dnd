@@ -1,7 +1,11 @@
+import type React from 'react';
 import { Coordinates, State, DistanceMeasurement, AttachEvent } from './types';
 
-export const preventDefault = <T extends Event>(event: T) => {
-  event.preventDefault();
+export const preventDefault = (event: Event | React.SyntheticEvent) => {
+  // https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable
+  if (event.cancelable) {
+    event.preventDefault();
+  }
 };
 
 export const isActiveCoordinates = (coordinates: Coordinates) => !!(coordinates.x || coordinates.y);

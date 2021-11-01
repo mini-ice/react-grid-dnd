@@ -1,8 +1,8 @@
 import * as React from 'react';
 import { createNamedContext } from './utils';
 import { reducer, getInitialState, Actions, Action } from './store';
-import { useGestureResponser } from './hooks';
-import type { State, Config as SensorConfig } from './hooks';
+import { usePersistFn } from './hooks';
+import type { State, SensorConfig, SensorEvent } from './hooks';
 import {
   UniqueId,
   DraggableNode,
@@ -52,7 +52,12 @@ interface IDndContext {
   scrollableAncestorRects: ViewRect[];
   recomputeLayouts: () => void;
   willRecomputeLayouts: boolean;
-  listeners: ReturnType<typeof useGestureResponser> | null;
+  sensorConfig?: SensorConfig;
+  handleDragCancel: (state: State) => void;
+  handleDragEnd: (state: State, event: Event) => void;
+  handleDragUpdate: (state: State, event: Event) => void;
+  handleDragStart: (id: UniqueId, state: State, event: SensorEvent) => void;
+  // listeners: ReturnType<typeof useGestureResponser> | null;
 }
 
 export const Context = createNamedContext<IDndContext>('DndContext', {
@@ -69,7 +74,12 @@ export const Context = createNamedContext<IDndContext>('DndContext', {
   scrollableAncestorRects: [],
   recomputeLayouts: noop,
   willRecomputeLayouts: false,
-  listeners: null,
+  sensorConfig: {},
+  handleDragCancel: noop,
+  handleDragEnd: noop,
+  handleDragUpdate: noop,
+  handleDragStart: noop,
+  // listeners: null,
 });
 
 export const useDndContext = () => {
@@ -86,7 +96,7 @@ interface Props {
   id?: string;
   autoScroll?: boolean;
   sensorConfig?: SensorConfig;
-  onDragStart?: (state: State, event: Event) => void;
+  onDragStart?: (state: State, event: SensorEvent) => void;
   onDragUpdate?: (state: State, event: Event) => void;
   onDragOver?: () => void;
   onDragEnd?: (state: State, event: Event) => void;
@@ -116,50 +126,42 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
   const overId = draggableId && collisionRect.current ? '10' : null;
   const over = overId ? droppableContainers.get(overId) ?? null : null;
 
-  const listeners = useGestureResponser(
-    {
-      onStart: (state, event) => {
-        const { draggableId, droppableId } = (event?.target as HTMLElement)?.dataset;
+  const handleDragStart = usePersistFn((id: UniqueId, state: State, event: SensorEvent) => {
+    if (!id) return;
 
-        if (draggableId) {
-          dispatch({
-            type: Action.DragStart,
-            id: draggableId,
-            droppableId,
-            initialCoordinates: state.initialCoordinates,
-          });
+    dispatch({
+      type: Action.DragStart,
+      id,
+      initialCoordinates: state.initial,
+    });
 
-          onDragStart(state, event);
-        }
-      },
-      onMove: (state, event) => {
-        if (draggableId) {
-          dispatch({
-            type: Action.DragMove,
-            coordinates: state.coordinates,
-          });
+    onDragStart(state, event);
+  });
 
-          onDragUpdate(state, event);
-          // onDragUpdate({ id: draggableId }, event);
-        }
-      },
-      onEnd: (state, event) => {
-        dispatch({
-          type: Action.DragEnd,
-        });
+  const handleDragUpdate = usePersistFn((state: State, event: Event) => {
+    dispatch({
+      type: Action.DragMove,
+      coordinates: state.coordinates,
+    });
 
-        onDragEnd(state, event);
-      },
-      onCancel: (state) => {
-        dispatch({
-          type: Action.DragEnd,
-        });
+    onDragUpdate(state, event);
+  });
 
-        onDragCancel(state);
-      },
-    },
-    sensorConfig,
-  );
+  const handleDragEnd = usePersistFn<(...args: any[]) => void>((state: State, event: Event) => {
+    dispatch({
+      type: Action.DragEnd,
+    });
+
+    onDragEnd(state, event);
+  });
+
+  const handleDragCancel = usePersistFn((state: State) => {
+    dispatch({
+      type: Action.DragCancel,
+    });
+
+    onDragCancel(state);
+  });
 
   const memoContext = React.useMemo(
     () => ({
@@ -180,16 +182,24 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       recomputeLayouts: () => {},
       willRecomputeLayouts: false,
-      listeners,
+      // listeners,
+      handleDragStart,
+      handleDragUpdate,
+      handleDragEnd,
+      handleDragCancel,
+      sensorConfig,
     }),
     [
       draggableId,
       draggableNode,
-      draggableNodeRect,
       draggableNodes,
       droppableContainers,
-      listeners,
+      handleDragCancel,
+      handleDragEnd,
+      handleDragStart,
+      handleDragUpdate,
       over,
+      sensorConfig,
     ],
   );
 
