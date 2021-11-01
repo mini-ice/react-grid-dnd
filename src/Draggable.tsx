@@ -34,19 +34,21 @@ export function useDraggable({ id, disabled = false, sensorConfig }: UseDraggabl
     { ...defaultSensorConfig, ...sensorConfig },
   );
 
-  React.useEffect(() => {
-    draggableNodes[id] = {
-      id,
-      key,
-      node: ref,
-    };
-    return () => {
-      const node = draggableNodes[id];
-      if (node && node.key === key) {
-        delete draggableNodes[id];
-      }
-    };
-  }, [id, disabled, draggableNodes, key]);
+  React.useEffect(
+    () => {
+      draggableNodes[id] = { id, key, node: ref };
+
+      return () => {
+        const node = draggableNodes[id];
+
+        if (node && node.key === key) {
+          delete draggableNodes[id];
+        }
+      };
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draggableNodes, id],
+  );
 
   return {
     ref,

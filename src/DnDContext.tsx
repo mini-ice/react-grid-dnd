@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { createNamedContext } from './utils';
 import { reducer, getInitialState, Actions, Action } from './store';
-import { usePersistFn } from './hooks';
+import { usePersistFn, useViewRect } from './hooks';
 import type { State, SensorConfig, SensorEvent } from './hooks';
 import {
   UniqueId,
@@ -22,7 +22,7 @@ interface Transform {
   scaleY: number;
 }
 
-export const ActiveDraggableContext = createNamedContext<Transform>('ActiveDraggableContext', {
+export const ActiveDraggable = createNamedContext<Transform>('ActiveDraggable', {
   x: 0,
   y: 0,
   scaleX: 1,
@@ -30,7 +30,7 @@ export const ActiveDraggableContext = createNamedContext<Transform>('ActiveDragg
 });
 
 export const useActiveDraggable = () => {
-  const context = React.useContext(ActiveDraggableContext);
+  const context = React.useContext(ActiveDraggable);
 
   return context;
 };
@@ -47,7 +47,7 @@ interface IDndContext {
   overlayNode: {
     ref: React.MutableRefObject<HTMLElement | null>;
     rect: ViewRect | null;
-  } | null;
+  };
   scrollableAncestors: Element[];
   scrollableAncestorRects: ViewRect[];
   recomputeLayouts: () => void;
@@ -69,7 +69,10 @@ export const Context = createNamedContext<IDndContext>('DndContext', {
   droppableContainers: new Map(),
   droppableRects: new Map(),
   over: null,
-  overlayNode: null,
+  overlayNode: {
+    ref: { current: null },
+    rect: null,
+  },
   scrollableAncestors: [],
   scrollableAncestorRects: [],
   recomputeLayouts: noop,
@@ -106,7 +109,7 @@ interface Props {
 export const DndContext: React.FC<Props> = React.memo(function DndContext({
   onDragStart = noop,
   onDragUpdate = noop,
-  onDragOver = noop,
+  // onDragOver = noop,
   onDragEnd = noop,
   onDragCancel = noop,
   sensorConfig,
@@ -117,14 +120,14 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
   const { id: draggableId, nodes: draggableNodes } = draggable;
   const draggableNode = draggableId ? draggableNodes[draggableId] : null;
   const draggableElement = draggableNode ? draggableNode?.node?.current : null;
-  const draggableNodeRect = null;
-
+  const draggableNodeRect = useViewRect(draggableElement);
   const { containers: droppableContainers } = droppable;
 
   const collisionRect = React.useRef<any | null>(null);
 
   const overId = draggableId && collisionRect.current ? '10' : null;
   const over = overId ? droppableContainers.get(overId) ?? null : null;
+  const overlay = React.useRef<HTMLElement | null>(null);
 
   const handleDragStart = usePersistFn((id: UniqueId, state: State, event: SensorEvent) => {
     if (!id) return;
@@ -134,7 +137,6 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
       id,
       initialCoordinates: state.initial,
     });
-
     onDragStart(state, event);
   });
 
@@ -147,7 +149,7 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
     onDragUpdate(state, event);
   });
 
-  const handleDragEnd = usePersistFn<(...args: any[]) => void>((state: State, event: Event) => {
+  const handleDragEnd = usePersistFn((state: State, event: Event) => {
     dispatch({
       type: Action.DragEnd,
     });
@@ -163,6 +165,12 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
     onDragCancel(state);
   });
 
+  const transform = {
+    ...draggable.translate,
+    scaleX: 1.06,
+    scaleY: 1.06,
+  };
+
   const memoContext = React.useMemo(
     () => ({
       dispatch,
@@ -174,7 +182,7 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
       droppableRects: new Map(),
       over,
       overlayNode: {
-        ref: { current: null },
+        ref: overlay,
         rect: null,
       },
       scrollableAncestors: [],
@@ -192,6 +200,7 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
     [
       draggableId,
       draggableNode,
+      draggableNodeRect,
       draggableNodes,
       droppableContainers,
       handleDragCancel,
@@ -203,5 +212,9 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
     ],
   );
 
-  return <Context.Provider value={memoContext}>{children}</Context.Provider>;
+  return (
+    <Context.Provider value={memoContext}>
+      <ActiveDraggable.Provider value={transform}>{children}</ActiveDraggable.Provider>
+    </Context.Provider>
+  );
 });
