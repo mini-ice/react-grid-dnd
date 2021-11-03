@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Coordinates } from './types';
+import { Coordinates, ViewRect, LayoutRect } from './types';
 
 /**
  * create context and assign context displayName
@@ -9,6 +9,121 @@ export function createNamedContext<T>(displayName: string, defaultValue: T): Rea
   context.displayName = displayName;
 
   return context;
+}
+
+export function getMeasurableNode(node: HTMLElement | undefined | null): HTMLElement | null {
+  if (!node) {
+    return null;
+  }
+
+  if (node.children.length > 1) {
+    return node;
+  }
+  const firstChild = node.children[0];
+
+  return firstChild instanceof HTMLElement ? firstChild : node;
+}
+
+function getEdgeOffset(
+  element: HTMLElement | null,
+  parentNode: (Node & ParentNode) | null,
+  defaultOffset = { x: 0, y: 0 },
+): { x: number; y: number } {
+  const offset = {
+    x: defaultOffset.x,
+    y: defaultOffset.y,
+  };
+
+  while (element && element !== parentNode) {
+    // reflow
+    const { offsetLeft, offsetTop } = element;
+    offset.x += offsetLeft;
+    offset.y += offsetTop;
+    element = element.offsetParent as HTMLElement;
+  }
+
+  return offset;
+}
+
+export function getElementLayout(element: HTMLElement): LayoutRect {
+  // offsetWidth will be rounded to an integer.
+  // https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/offsetWidth
+  // reflow
+  const { width, height } = element.getBoundingClientRect();
+  const { x: offsetLeft, y: offsetTop } = getEdgeOffset(element, null);
+
+  return {
+    width,
+    height,
+    offsetTop,
+    offsetLeft,
+  };
+}
+
+export function isScrollable(node: HTMLElement): boolean {
+  // reflow
+  const computedStyle = window.getComputedStyle(node);
+  const overflowRegex = /(auto|scroll)/;
+  const properties = ['overflow', 'overflowX', 'overflowY'];
+
+  return properties.some((key) => {
+    const overflow = computedStyle.getPropertyValue(key);
+    return typeof overflow === 'string' ? overflowRegex.test(overflow) : false;
+  });
+}
+
+export function getScrollableAncestors(element: Node | null): Element[] {
+  const scrollParents: Element[] = [];
+
+  while (element) {
+    if (element instanceof Document && element.scrollingElement !== null) {
+      scrollParents.push(element.scrollingElement);
+      return scrollParents;
+    }
+
+    if (element instanceof HTMLElement && isScrollable(element)) {
+      scrollParents.push(element);
+    }
+
+    element = element.parentNode;
+  }
+
+  return scrollParents;
+}
+
+export function getViewRect(element: HTMLElement): ViewRect {
+  const { width, height, offsetTop, offsetLeft } = getElementLayout(element);
+  const scrollableAncestors = getScrollableAncestors(element);
+  const scrollOffsets = scrollableAncestors.reduce(
+    (acc, element) => {
+      if (element instanceof Window) {
+        // reflow
+        const { scrollX, scrollY } = element;
+        acc.x += scrollX;
+        acc.y += scrollY;
+      } else {
+        // reflow
+        const { scrollTop, scrollLeft } = element;
+        acc.x += scrollLeft;
+        acc.y += scrollTop;
+      }
+      return acc;
+    },
+    { x: 0, y: 0 },
+  );
+  const top = offsetTop - scrollOffsets.y;
+  const left = offsetLeft - scrollOffsets.x;
+
+  return {
+    width,
+    height,
+    top,
+    bottom: top + height,
+    right: left + width,
+    left,
+    offsetTop,
+    offsetLeft,
+  };
 }
 
 export function closest<T extends HTMLElement>(el: T, fn: (el: T) => boolean) {
@@ -50,50 +165,3 @@ export const NodeType = {
   Textarea: 'TEXTAREA',
   Select: 'SELECT',
 };
-
-/**************************** hooks ****************************/
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function usePersistFn<T extends (...args: any[]) => void>(fn?: T) {
-  const fnRef = React.useRef<T>();
-  fnRef.current = fn;
-
-  const presistFn = React.useRef<T>();
-
-  if (typeof fnRef.current !== 'function') return undefined;
-
-  if (!presistFn.current) {
-    presistFn.current = function (...args: unknown[]) {
-      return fnRef.current?.(...args);
-    } as T;
-  }
-
-  return presistFn.current;
-}
-
-export function useSetState<S>(
-  initalState: S,
-): [Partial<S>, React.Dispatch<React.SetStateAction<Partial<S>>>] {
-  const [state, set] = React.useState<S>(initalState);
-  const isUnmountedRef = React.useRef(false);
-
-  React.useEffect(
-    () => () => {
-      isUnmountedRef.current = true;
-    },
-    [],
-  );
-
-  const setMergeState = React.useCallback(
-    (state) =>
-      isUnmountedRef.current &&
-      set((prevState) => {
-        if (typeof state === 'function') return { ...prevState, ...state(prevState) };
-        if (typeof state === 'object') return { ...prevState, ...state };
-        return prevState;
-      }),
-    [set],
-  );
-
-  return [state, setMergeState];
-}

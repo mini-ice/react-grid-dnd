@@ -43,3 +43,10 @@ export type Coordinates = {
   x: number;
   y: number;
 };
+
+export interface Transform {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+}

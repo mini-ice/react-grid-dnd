@@ -9,18 +9,12 @@ import {
   LayoutRect,
   ViewRect,
   DroppableContainer,
+  Transform,
   // Announcements,
 } from './types';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-function
 function noop(...args: any[]) {}
-
-interface Transform {
-  x: number;
-  y: number;
-  scaleX: number;
-  scaleY: number;
-}
 
 export const ActiveDraggable = createNamedContext<Transform>('ActiveDraggable', {
   x: 0,
@@ -44,7 +38,7 @@ interface IDndContext {
   droppableContainers: Map<UniqueId, DroppableContainer>;
   droppableRects: Map<UniqueId, LayoutRect>;
   over: DroppableContainer | null;
-  overlayNode: {
+  dragOverlay: {
     ref: React.MutableRefObject<HTMLElement | null>;
     rect: ViewRect | null;
   };
@@ -69,7 +63,7 @@ export const Context = createNamedContext<IDndContext>('DndContext', {
   droppableContainers: new Map(),
   droppableRects: new Map(),
   over: null,
-  overlayNode: {
+  dragOverlay: {
     ref: { current: null },
     rect: null,
   },
@@ -181,7 +175,7 @@ export const DndContext: React.FC<Props> = React.memo(function DndContext({
       droppableContainers,
       droppableRects: new Map(),
       over,
-      overlayNode: {
+      dragOverlay: {
         ref: overlay,
         rect: null,
       },
